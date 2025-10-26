@@ -42,7 +42,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck,leaps
+          extra-packages: any::rcmdcheck,leaps,nycflights13
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
