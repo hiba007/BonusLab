@@ -1,0 +1,134 @@
+---
+title: "Ridge Regression for Predictive Modelling"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ridgereg}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+####### We used stratified split to create training dataset and test dataset
+```{r setup}
+library(BonusLab)
+library(caret)
+library(mlbench)
+
+data(BostonHousing)
+
+set.seed(123)
+
+trainIndex <- createDataPartition(BostonHousing$medv, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+trainData <- BostonHousing[trainIndex, ]
+testData  <- BostonHousing[-trainIndex, ]
+head(trainData, 3)
+```
+####### Now we fit Linear Regression model and Linear Regression with forward selection with k-fold = 5. Variable `medv`= Median value of owner-occupied homes is our target. Forward Selection will try itertaive combinations of columns to find best model. 
+
+```{r fit}
+
+cross_val <- trainControl(method = "cv", number = 5, classProbs = FALSE)
+lm_model <- train(medv ~ ., data = trainData, method = "lm",  trControl = cross_val)
+
+forward_selection <- data.frame(nvmax = 1:(ncol(trainData) - 1))
+
+lm_forward_model <- train(medv ~ ., data = trainData, 
+                    method = "leapForward", 
+                    trControl = cross_val,
+                    tuneGrid = forward_selection)
+
+print(lm_forward_model)
+```
+####### Now we will perform evaluation using Root Mean Squared Error `RMSE` on both models
+
+```{r eval}
+lm_pred <- predict(lm_model, trainData)
+lm_fw_pred <- predict(lm_forward_model, trainData)
+
+train_results <- data.frame(
+  Model = c("Linear Model", "Linear Model With Forward Selection"),
+  RMSE = c(RMSE(lm_pred, trainData$medv),
+           RMSE(lm_fw_pred, trainData$medv))
+)
+
+print("Evaluation on Training Set:")
+print(train_results)
+```
+
+####### Now we will use our custom function of ridge regression on training dataset and try to find the optimal lambda.
+
+```{r ridge}
+
+ridge_grid <- expand.grid(lambda = seq(0, 1, length.out = 20))
+
+folds <- createFolds(trainData$medv, k = 20, list = TRUE, returnTrain = FALSE)
+
+cv_df <- data.frame(lambda = ridge_grid$lambda, 
+                         mean_rmse = NA)
+
+
+for (i in 1:nrow(ridge_grid)) {
+  
+  lambda <- ridge_grid$lambda[i]
+  rmses_list <- c() # 
+  
+  for (j in 1:length(folds)) {
+    
+    indices <- folds[[j]]
+    
+    train_set <- trainData[-indices, ]
+    test_set  <- trainData[indices, ]
+    
+    model <- ridgereg(medv ~ ., data = train_set, lambda = lambda)
+    preds <- model$predict(test_set)
+    
+    rmse <- RMSE(preds, test_set$medv)
+    rmses_list <- c(rmses_list, rmse)
+  }
+  
+  cv_df$mean_rmse[i] <- mean(rmses_list)
+}
+
+
+best_lambda <- cv_df[which.min(cv_df$mean_rmse), ]
+
+print("Best lambda value for k = 20 folds")
+best_lambda
+
+```
+####### Now we will run predictions of all three models on our test dataset and evaluate our results
+
+```{r testdata}
+preds_lm <- predict(lm_model, testData)
+preds_forward <- predict(lm_forward_model, testData)
+
+model <- ridgereg(medv ~ ., data = trainData, lambda = best_lambda$lambda)
+
+preds_ridge <- model$predict(testData)
+
+final_results <- data.frame(
+  Model = c("Linear Regression", "Forward Selection", "Ridge Regression"),
+  RMSE = c(
+    RMSE(preds_lm, testData$medv),
+    RMSE(preds_forward, testData$medv),
+    RMSE(preds_ridge, testData$medv)
+  ),
+  Rsquared = c(
+    R2(preds_lm, testData$medv),
+    R2(preds_forward, testData$medv),
+    R2(preds_ridge, testData$medv)
+  )
+)
+
+print("Below are results on Test Dataset:")
+print(final_results)
+```
+#### Conclusion:
+####### Overall, Forward Selection is the preferred model for this task. Ridge Regression is particularly useful in scenarios where there is high multicollinearity among predictors.

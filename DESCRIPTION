@@ -1,0 +1,23 @@
+Package: BonusLab
+Type: Package
+Title: Ridge Regression
+Version: 0.1.0
+Authors@R: c(
+    person(
+      "Pirzada Hiba Tur", "Rehman",
+      email = "pirre015@student.liu.se",
+      role = c("aut", "cre")
+    )
+  )
+Description: Ridge regression is a technique used to improve linear regression
+    models, especially when predictors are highly correlated
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
