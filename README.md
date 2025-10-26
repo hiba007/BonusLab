@@ -5,7 +5,6 @@
 [![R-CMD-check](https://github.com/hiba007/BonusLab/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/hiba007/BonusLab/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-The goal of BonusLab is to ...
 
 ## Installation
 
